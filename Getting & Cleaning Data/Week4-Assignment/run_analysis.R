@@ -83,4 +83,4 @@ finaldata<-select(finaldata,c(1:68))
 rm(tidydata)
 
 #Writing the tidy dataset to a text-file
-write.table(finaldata, "FinalData.txt", row.name=FALSE)
+write.table(finaldata, "FinalData.txt", row.name=FALSE, sep = '\t')
