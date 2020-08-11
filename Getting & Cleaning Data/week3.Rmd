@@ -1,0 +1,59 @@
+---
+title: "Untitled"
+author: "Janish Parikh"
+date: "09/08/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Preparing the data set 
+```{r}
+library(data.table)
+x<-as.data.table(read.csv("outcome-of-care-measures.csv",
+                          header = T, comment.char = ""))
+target<-as.data.frame(cbind(x[,2],#Name of Hospital
+                                     x[,7],#state
+                                     (x[,11]),#heart attack
+                                     (x[,17]),#heart failure
+                                     (x[,23]))#pneumonia
+                       ,stringsAsFactors = F)
+for (i in(3:5)){
+  target[,i]=as.numeric(target[,i])
+}
+target<-data.table(target, stringsAsFactors = F)
+names<-c("hospital_name","state","heart attack",
+           "heart failure","pneumonia")
+colnames(target)<-names
+head(target,5)
+```
+
+#Subdetting and Sorting
+```{r}
+state <-as.character(readline(prompt = "Enter State"))
+outcome<-as.character(readline(prompt = "Which disease are you looking for?"))
+rank<-as.numeric(readline(prompt = "which rank are you looking for?"))
+target2<-target[which(target$state== 'CA'),]
+sort(target2$`heart attack`)
+target2<-target2[order(target2$`heart attack`,target2$hospital_name),]
+target2$avgdeathrate<-round(((target2$`heart attack`+target2$`heart failure`+target2$pneumonia)/3), digits = 1)
+```
+
+#Baltimore Restaurnat Data
+```{r}
+restaurant_Data<-as.data.table(read.csv("Restaurants.csv",
+                          header = T, comment.char = ""))
+summary(restaurant_Data)
+str(restaurant_Data)
+#if any to get all the NA values too
+table(restaurant_Data$zipCode,useNA = 'ifany')
+restaurant_Data[restaurant_Data$zipCode %in% c('21212'),]
+```
+Adding catogerical variable
+```{r}
+restaurant_Data$zipgroup = cut(restaurant_Data$zipCode, breaks=  quantile(restaurant_Data$zipCode))
+table(restaurant_Data$zipgroup)
+restaurant_Data$zipgroup =as.numeric(factor(restaurant_Data$zipgroup))
+```
