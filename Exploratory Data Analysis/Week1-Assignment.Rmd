@@ -1,0 +1,67 @@
+---
+title: "Week 1 Assignment"
+author: "Janish Parikh"
+date: "18/08/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library('dplyr')
+library('lattice')
+```
+Loading the data
+```{r}
+data<- read.table("./Datasets/household_power_consumption.txt" , sep = ";", header = T)
+head(data)
+```
+
+We will only be using data from the dates 2007-02-01 and 2007-02-02. One alternative is to read the data from just those dates rather than reading in the entire dataset and subsetting to those dates.
+```{r}
+targetdata<-data[data$Date %in% c('1/2/2007', '2/2/2007'),]
+datetime <- strptime(paste(targetdata$Date, targetdata$Time, sep=" "), "%d/%m/%Y %H:%M:%S")
+rm(data)
+```
+Making Plots
+Save it to a PNG file with a width of 480 pixels and a height of 480 pixels.
+Plot1
+```{r}
+png(filename = "plot1.png", height = 480, width = 480, units ='px')
+hist(as.numeric(targetdata$Global_active_power), col = 'red', xlab = "Global Active Power (kilowatts)", main = "Global Active Power")
+dev.off()
+```
+Plot2
+```{r}
+png(filename = "plot2.png", height = 480, width = 480, units ='px')
+plot(datetime, as.numeric(targetdata$Global_active_power), type = 'l', ylab = "Global Active Power (kilowatts)", xlab = "" )
+dev.off()
+```
+Plot 3
+```{r}
+targetdata$Sub_metering_1<-as.numeric(targetdata$Sub_metering_1)
+targetdata$Sub_metering_2<-as.numeric(targetdata$Sub_metering_2)
+targetdata$Sub_metering_3<-as.numeric(targetdata$Sub_metering_3)
+
+png(filename = "plot3.png", height = 480, width = 480, units ='px')
+plot(datetime, targetdata$Sub_metering_1, type ='l', col='black', ylab = "Energy Sub Metering", xlab = "" )
+lines(datetime, targetdata$Sub_metering_2, type = 'l', col = 'red')
+lines(datetime, targetdata$Sub_metering_3, type ='l',col ='blue')
+legend('topright', c('Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3'), lty = 2, lwd = 3 , col = c('black', 'red', 'blue'))
+dev.off()
+```
+Plot 4
+```{r}
+png(filename = "plot4.png", height = 480, width = 480, units ='px')
+par(mfrow=c(2,2))
+plot(datetime, as.numeric(targetdata$Global_active_power),type = 'l', col = 'red', xlab = "Global Active Power")
+plot(datetime, as.numeric(targetdata$Voltage),type = 'l', ylab = "Voltage")
+plot(datetime, targetdata$Sub_metering_1, type ='l', col='black', ylab = "Energy Sub Metering", xlab = "" )
+lines(datetime, targetdata$Sub_metering_2, type = 'l', col = 'red')
+lines(datetime, targetdata$Sub_metering_3, type ='l',col ='blue')
+legend('topright', c('Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3'), lty = 2, lwd = 3 , col = c('black', 'red', 'blue'))
+plot(datetime, targetdata$Global_reactive_power,type='l', ylab = "Global Reactive Power")
+dev.off()
+```
