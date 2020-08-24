@@ -16,3 +16,7 @@ lapply(x, runif,min=0,max=10)#random uniform distribution generated
 x<-list(a=matrix(1:4,2,2),b=matrix(1:6,3,2))
 #lapply(x, solve)
 sapply(x, function(elt) elt[,1])#Anonymous function
+
+#Whereas sapply() tries to 'guess' the correct format of the result, vapply()
+# allows you to specify it explicitly. If the result doesn't match the format 
+#you specify, vapply() will throw an error, causing the operation to stop.
