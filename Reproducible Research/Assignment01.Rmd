@@ -33,7 +33,7 @@ head(complete_activity_data)
 ```
 
 2. *Histogram of the total number of steps taken each day*
-```{r, warning=FALSE}
+```{r, plot1 , warning=FALSE}
 aggregate_data<-aggregate(complete_activity_data$step,by =    
                             list(complete_activity_data$date), FUN = sum )
 colnames(aggregate_data)<-c("Date","Total No of Steps")
@@ -55,7 +55,7 @@ Median<-median(aggregate_data$`Total No of Steps`)
     Median no of steps taken each day `r Median`
 
 4. *Time series plot of the average number of steps taken*
-```{r}
+```{r , plot2}
 aggregate_data1<-aggregate(complete_activity_data$steps, 
                            by = list(complete_activity_data$date), FUN = mean)
 colnames(aggregate_data1)<-c("Date","Average no of steps taken")
@@ -94,7 +94,7 @@ head(imputedData)
 ```
 
 7. *Histogram of the total number of steps taken each day after missing values are imputed*
-```{r, warning=FALSE}
+```{r, plot3, warning=FALSE}
 aggregate_data4<-aggregate(imputedData$step,
                            by = list(imputedData$date), FUN = sum )
 colnames(aggregate_data4)<-c("Date","Total No of Steps")
@@ -121,7 +121,7 @@ qplot(aggregate_data4$`Total No of Steps`, geom = "histogram",
 head(imputedData)
 ```
 
-```{r}
+```{r, plot4}
 activityData2Interval <- aggregate(steps ~ interval + datetype, data= imputedData, 
                                    mean)
 ggp <- ggplot(activityData2Interval, aes(interval, steps, colour=datetype)) +
