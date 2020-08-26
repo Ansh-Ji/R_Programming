@@ -1,0 +1,278 @@
+---
+title: "Storm Data Analysis"
+author: "Janish Parikh"
+date: "26/08/2020"
+output: md_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Exploring the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database - Health and Economic Impacts
+
+## Synopsis
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration’s (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+The analysis of the data shows that tornadoes, by far, have the greatest health impact as measured by the number of injuries and fatalities The analysis also shows that floods cause the greatest economic impact as measured by property damage and crop damage.
+
+## Data Processing
+
+### Loading the packages and prepare the R environment
+
+I used the following libraries in my analysis
+```{r,  message=FALSE}
+library('dplyr')
+library('plyr')
+library('ggplot2')
+```
+
+## Data
+The data for this assignment come in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size. You can download the file from the course web site: [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2)
+
+There is also some documentation of the database available. Here you will find how some of the variables are constructed/defined.
+
+National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
+
+The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete.
+
+## Goal
+The basic goal of this analysis is to explore the NOAA Storm Database and answer the following basic questions about severe weather events.
+
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+2. Across the United States, which types of events have the greatest economic consequences?
+
+### Loading the Data
+
+The data was downloaded from the link above and saved on local computer (in setwd command one can replace loacal file path with path of folder where the data was downloaded). Then it was loaded on the R using the read.csv command.
+```{r , cache=TRUE}
+storm_data<-as.data.frame(read.csv("repdata_data_StormData.csv", header = T,
+                                   comment.char = ""))
+```
+
+Examining the Storm Data Loaded
+```{r}
+dim(storm_data)
+summary(storm_data)
+```
+## Extracting variables of interest for analysis of weather impact on health and economy
+From a list of variables in storm_data, these are columns of interest:
+
+Health variables:
+
+* FATALITIES: approx. number of mortalities
+* INJURIES: approx. number of injuries
+
+Economic variables:
+
+-PROPDMG: approx. property damage
+-PROPDMGEXP: the units for property damage value
+-CROPDMG: approx. crop damages
+-CROPDMGEXP: the units for crop damage value
+
+Events - target variable:
+
+EVTYPE: weather event (Tornados, Wind, Snow, Flood, etc..)
+
+Extract variables of interest from original data set:
+
+```{r}
+target_variables<-c("EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")
+target_data<-storm_data[,target_variables]
+#Renaming the columns of target_data for better understanding and readibility
+colnames(target_data)<-c("event_type","fatalities","injuries","property_damage","property_damage_exponent","crop_damage","crop_damage_exponent")
+```
+
+```{r}
+summary(target_data)
+```
+
+```{r, echo =F}
+rm(storm_data, target_variables)
+```
+
+## Checking if any of the target variables has any NA or NAN values:
+```{r}
+for (i in 1:7){
+  print(paste("No of NA/NAN Values in", names(target_data)[i], "are", sum(is.na(target_data[,i])) ))
+}
+```
+
+## Transforming Extracted Variables
+```{r}
+sort(table(target_data$event_type),decreasing = T)[1:10]
+```
+
+The Event Type can be grouped into few broad categories
+
+There are many cases where event type are just Upper and Lower Cases of word like Winter, WINTER, winter.
+We will group events like TUNDERSTORM WIND, TUNDERSTORM WINDS, HIGH WIND, etc. by containing the keyword ‘WIND’ as one event WIND.
+We will transform other types of events in a similar way. 
+New variable event_category is the transform variable of event_type that have 10 different types of events: HEAT, FLOOD, etc., and type MISC for events in which name the keyword is not found.
+
+```{r, cache=T}
+target_data$event_category<-"MISC"
+
+target_data$event_category[grep("HAIL", target_data$event_type, ignore.case = T )]<-"hail"
+target_data$event_category[grep("STORM", target_data$event_type, ignore.case = T )]<-"storm"
+target_data$event_category[grep("THUNDERSTORM", target_data$event_type, ignore.case = T )]<-"thunderstorm"
+target_data$event_category[grep("HEAT", target_data$event_type, ignore.case = T )]<-"heat"
+target_data$event_category[grep("drought", target_data$event_type, ignore.case = T )]<-"drought"
+target_data$event_category[grep("TORNADO", target_data$event_type, ignore.case = T )]<-"tornado"
+target_data$event_category[grep("FlOOD", target_data$event_type, ignore.case = T )]<-"flood"
+target_data$event_category[grep("FLD", target_data$event_type, ignore.case = T )]<-"flood" #floods in streams, urban area
+target_data$event_category[grep("WIND", target_data$event_type, ignore.case = T )]<-"wind"
+target_data$event_category[grep("SNOW", target_data$event_type, ignore.case = T )]<-"snow"
+target_data$event_category[grep("WINTER", target_data$event_type, ignore.case = T )]<-"winter"
+target_data$event_category[grep("FREEZE", target_data$event_type, ignore.case = T )]<-"winter"
+target_data$event_category[grep("ICE", target_data$event_type, ignore.case = T )]<-"ice"
+target_data$event_category[grep("RAIN", target_data$event_type, ignore.case = T )]<-"rain"
+target_data$event_category[grep("WILDFIRE", target_data$event_type, ignore.case = T )]<-"wildfire"
+target_data$event_category[grep("FIRE", target_data$event_type, ignore.case = T )]<-"fire"
+target_data$event_category[grep("THUNDERSTORM", target_data$event_type, ignore.case = T )]<-"thunderstorm"
+target_data$event_category[grep("LIGHTNING", target_data$event_type, ignore.case = T )]<-"lightning"
+target_data$event_category[grep("FIRE", target_data$event_type, ignore.case = T )]<-"fire"
+target_data$event_category[grep("BLIZZARD", target_data$event_type, ignore.case = T )]<-"blizzard"
+target_data$event_category[grep("FUNNEL", target_data$event_type, ignore.case = T)]   <-"tornado"  #funnel clouds lead to tornadoes on land
+target_data$event_category[grep("WATERSPOUT", target_data$event_type, ignore.case = T )]<-"tornado" #Basically they are tornadoes on water
+
+table(target_data$event_category)
+```
+
+Checking the values for variables that represent units of dollars:
+```{r}
+table(target_data$property_damage_exponent)
+table(target_data$crop_damage_exponent)
+```
+
+We can see there are incorrect units:
+1. - k/K stand for thousands dollars (10^3)
+2. - m/M stand for Million dollars (10^6)
+3. - b/B stand for Billion dolllars (10^9)
+4. - All the rest would be considered as dollars including NA's
+```{r}
+target_data$property_damage_exponent <- toupper(target_data$property_damage_exponent)
+target_data$crop_damage_exponent <- toupper(target_data$crop_damage_exponent)
+
+target_data$crop_damage_factor[(target_data$crop_damage_exponent == "")] <- 10^0
+target_data$crop_damage_factor[(target_data$crop_damage_exponent == "?")] <- 10^0
+target_data$crop_damage_factor[(target_data$crop_damage_exponent == "0")] <- 10^0
+target_data$crop_damage_factor[(target_data$crop_damage_exponent == "2")] <- 10^2
+target_data$crop_damage_factor[(target_data$crop_damage_exponent == "K")] <- 10^3
+target_data$crop_damage_factor[(target_data$crop_damage_exponent == "M")] <- 10^6
+target_data$crop_damage_factor[(target_data$crop_damage_exponent == "B")] <- 10^9
+target_data$total_crop_damage<- target_data$crop_damage * target_data$crop_damage_factor
+
+
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "")] <- 10^0
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "-")] <- 10^0
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "?")] <- 10^0
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "+")] <- 10^0
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "0")] <- 10^0
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "1")] <- 10^1
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "2")] <- 10^2
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "3")] <- 10^3
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "4")] <- 10^4
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "5")] <- 10^5
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "6")] <- 10^6
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "7")] <- 10^7
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "8")] <- 10^8
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "H")] <- 10^2
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "K")] <- 10^3
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "M")] <- 10^6
+target_data$prop_damage_factor[(target_data$property_damage_exponent == "B")] <- 10^9
+target_data$total_property_damage<- target_data$property_damage * target_data$prop_damage_factor
+
+
+target_data[which.max(target_data$total_property_damage),]
+
+target_data[which.max(target_data$total_crop_damage),]
+
+```
+
+Finding out the event that caused maximum loss to property and crop
+We can see that both the events belong to the category 'flood'
+```{r}
+target_data[which.max(target_data$total_property_damage),c(1,4,5,8,12)]
+target_data[which.max(target_data$total_crop_damage),c(1,7,8,9,10)]
+
+```
+```{r,echo=F}
+rm(i)
+```
+## Analysis
+
+### Aggregating events for economic variables
+```{r, cache=T}
+#We have the property damage and crop damage caused by individual event.
+#Now we take a sum of the damages grouped by the event category
+
+# Aggregate property damage by event_category
+property_damage_byevents <- ddply(target_data, .(event_category), summarize, prop_damage = sum(total_property_damage, na.rm = TRUE))
+property_damage_byevents$id1 <- "property"
+
+crop_damage_byevents <- ddply(target_data, .(event_category), summarize, crop_damage = sum(total_crop_damage, na.rm = TRUE))
+crop_damage_byevents$id2 <- "crop"
+
+economy_loss<- join(property_damage_byevents, crop_damage_byevents, by ="event_category", type ='inner')
+economy_loss$total_damage<-economy_loss$prop_damage+economy_loss$crop_damage
+economy_loss
+```
+### Aggregating events for public health variables
+
+
+```{r , cache=T}
+#We have the number of fatalities and injuries caused by individual event.
+#Now we take a sum of the life damages grouped by the event category
+
+# Aggregate property damage by event_category
+fatalities_byevents <- ddply(target_data, .(event_category), summarize, total_deaths = sum(fatalities, na.rm = TRUE))
+property_damage_byevents$id <- "property"
+
+injuries_byevents <- ddply(target_data, .(event_category), summarize, total_injuries = sum(injuries, na.rm = TRUE))
+crop_damage_byevents$id <- "crop"
+
+public_health_loss<- join(fatalities_byevents, injuries_byevents, by ="event_category", type ='inner')
+public_health_loss$total_damage<-public_health_loss$total_deaths+public_health_loss$total_injuries
+public_health_loss
+```
+
+Finding out the event that caused maximum loss to public health
+We can see that Tornados on land are responsible for maximum no of loss to human health
+Whether we consider only no of death or injuries, tornadoes prove to be the most deadly
+```{r}
+public_health_loss[which.max(public_health_loss$total_injuries),]
+public_health_loss[which.max(public_health_loss$total_deaths),]
+public_health_loss[which.max(public_health_loss$total_injuries),]
+```
+
+## Results
+
+### Across the United States, which types of events have the greatest economic consequences?
+
+```{r}
+economy_loss$event_catogery<-as.factor(economy_loss$event_category)
+ggplot() + geom_bar(data = economy_loss, 
+           aes(x = event_catogery, y = total_damage, 
+           fill = interaction(total_damage, event_category)), 
+           stat = "identity", show.legend = F) + 
+           theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+           xlab("Event Type") + ylab("Total Damage to the Economy")
+```
+
+### Across the United States, which types of events are most harmful with respect to population health?
+```{r}
+economy_loss$event_category<-as.factor(economy_loss$event_category)
+ggplot() + geom_bar(data = public_health_loss, 
+           aes(x = event_category, y = total_damage, 
+           fill = interaction(total_damage, event_category)), 
+           stat = "identity", show.legend = F) + 
+           theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+           xlab("Event Type") + ylab("Total Damage to Population Health")
+```
+
+```{r, echo=F}
+rm(list=ls())
+```
